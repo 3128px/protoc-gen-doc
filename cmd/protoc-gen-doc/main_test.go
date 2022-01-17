@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"testing"
 
-	. "github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc"
+	. "github.com/3128px/protoc-gen-doc/v2/cmd/protoc-gen-doc"
 	"github.com/stretchr/testify/require"
 )
 

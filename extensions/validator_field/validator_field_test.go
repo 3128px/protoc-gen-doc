@@ -3,10 +3,10 @@ package extensions_test
 import (
 	"testing"
 
+	"github.com/3128px/protoc-gen-doc/v2/extensions"
+	. "github.com/3128px/protoc-gen-doc/v2/extensions/validator_field"
 	"github.com/golang/protobuf/proto"
 	validator "github.com/mwitkow/go-proto-validators"
-	"github.com/pseudomuto/protoc-gen-doc/extensions"
-	. "github.com/pseudomuto/protoc-gen-doc/extensions/validator_field"
 	"github.com/stretchr/testify/require"
 )
 

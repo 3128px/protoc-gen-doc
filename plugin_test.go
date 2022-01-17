@@ -4,9 +4,9 @@ import (
 	"regexp"
 	"testing"
 
+	. "github.com/3128px/protoc-gen-doc/v2"
 	"github.com/golang/protobuf/proto"
 	plugin_go "github.com/golang/protobuf/protoc-gen-go/plugin"
-	. "github.com/pseudomuto/protoc-gen-doc"
 	"github.com/pseudomuto/protokit/utils"
 	"github.com/stretchr/testify/require"
 )
