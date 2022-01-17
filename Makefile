@@ -1,75 +1,37 @@
-.PHONY: bench test build dist docker examples release lint
+name := protoc-gen-doc
 
-export GO111MODULE=on
+# Currently we resolve it using which. But more sophisticated approach is to use infer GOROOT.
+go     := $(shell which go)
+goarch := $(shell $(go) env GOARCH)
+goexe  := $(shell $(go) env GOEXE)
+goos   := $(shell $(go) env GOOS)
 
-EXAMPLE_DIR=$(PWD)/examples
-DOCS_DIR=$(EXAMPLE_DIR)/doc
-PROTOS_DIR=$(EXAMPLE_DIR)/proto
+all_go_sources := $(wildcard cmd/*/*.go *.go extensions/*/*.go)
+main_go_sources := cmd/$(name)/main.go $(wildcard $(filter-out %_test.go,$(all_go_sources)))
+binary_$(name)_sources := cmd/$(name)/main.go cmd/$(name)/flags.go # TODO(dio): Make sure we have automated way for getting these files.
 
-EXAMPLE_CMD=protoc --plugin=protoc-gen-doc \
-	-Ithirdparty -Itmp/googleapis -Iexamples/proto \
-	--doc_out=examples/doc
+current_binary_path := build/$(name)_$(goos)_$(goarch)
+current_binary      := $(current_binary_path)/$(name)$(goexe)
 
-DOCKER_CMD=docker run --rm \
-	-v $(DOCS_DIR):/out:rw \
-	-v $(PROTOS_DIR):/protos:ro \
-	-v $(EXAMPLE_DIR)/templates:/templates:ro \
-	-v $(PWD)/thirdparty/github.com/mwitkow:/usr/local/include/github.com/mwitkow:ro \
-	-v $(PWD)/thirdparty/github.com/envoyproxy:/usr/local/include/github.com/envoyproxy:ro \
-	-v $(PWD)/tmp/googleapis/google/api:/usr/local/include/google/api:ro \
-	pseudomuto/protoc-gen-doc:local
+linux_platforms       := linux_amd64 linux_arm64
+non_windows_platforms := darwin_amd64 darwin_arm64 $(linux_platforms)
+windows_platforms     := windows_amd64
 
-VERSION = $(shell cat version.go | sed -n 's/.*const VERSION = "\(.*\)"/\1/p')
+build: $(current_binary) ## Build the protoc-gen-doc binary
 
-fixtures/fileset.pb: fixtures/*.proto fixtures/generate.go fixtures/nested/*.proto
-	$(info Generating fixtures...)
-	@cd fixtures && go generate
+clean:
+	@rm -rf $(current_binary)
 
-tmp/googleapis:
-	rm -rf tmp/googleapis tmp/protocolbuffers
-	git clone --depth 1 https://github.com/googleapis/googleapis tmp/googleapis
-	rm -rf tmp/googleapis/.git
-	git clone --depth 1 https://github.com/protocolbuffers/protobuf tmp/protocolbuffers
-	cp -r tmp/protocolbuffers/src/* tmp/googleapis/
-	rm -rf tmp/protocolbuffers
+build/$(name)_%/$(name): $(main_go_sources)
+	@$(call go-build,$@,$(binary_$(name)_sources))
 
-test: fixtures/fileset.pb
-	@go test -cover -race ./ ./cmd/... ./extensions/...
+build/$(name)_%/$(name).exe: $(main_go_sources)
+	$(call go-build,$@,$(binary_$(name)_sources))
 
-bench:
-	@go test -bench=.
-
-build: 
-	@go build ./cmd/...
-
-dist:
-	@script/dist.sh
-
-docker_test: tmp/googleapis
-	@rm -f examples/doc/*
-	@docker build -t pseudomuto/protoc-gen-doc:local .
-	@$(DOCKER_CMD) --doc_opt=docbook,example.docbook:Ignore*
-	@$(DOCKER_CMD) --doc_opt=html,example.html:Ignore*
-	@$(DOCKER_CMD) --doc_opt=json,example.json:Ignore*
-	@$(DOCKER_CMD) --doc_opt=markdown,example.md:Ignore*
-	@$(DOCKER_CMD) --doc_opt=/templates/asciidoc.tmpl,example.txt:Ignore*
-
-examples: build tmp/googleapis examples/proto/*.proto examples/templates/*.tmpl
-	$(info Making examples...)
-	@rm -f examples/doc/*
-	@$(EXAMPLE_CMD) --doc_opt=docbook,example.docbook:Ignore* examples/proto/*.proto
-	@$(EXAMPLE_CMD) --doc_opt=html,example.html:Ignore* examples/proto/*.proto
-	@$(EXAMPLE_CMD) --doc_opt=json,example.json:Ignore* examples/proto/*.proto
-	@$(EXAMPLE_CMD) --doc_opt=markdown,example.md:Ignore* examples/proto/*.proto
-	@$(EXAMPLE_CMD) --doc_opt=examples/templates/asciidoc.tmpl,example.txt:Ignore* examples/proto/*.proto
-
-release:
-	@echo Releasing v${VERSION}...
-	git add CHANGELOG.md version.go
-	git commit -m "Bump version to v${VERSION}"
-	git tag -m "Version ${VERSION}" "v${VERSION}"
-	git push && git push --tags
-
-lint:
-	@which revive >/dev/null || go get github.com/mgechev/revive
-	revive --config revive.toml ./...
+go-arch = $(if $(findstring amd64,$1),amd64,arm64)
+go-os   = $(if $(findstring .exe,$1),windows,$(if $(findstring linux,$1),linux,darwin))
+define go-build
+	@CGO_ENABLED=0 GOOS=$(call go-os,$1) GOARCH=$(call go-arch,$1) $(go) build \
+		-ldflags "-s -w" \
+		-o $1 $2
+endef

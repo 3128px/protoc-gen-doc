@@ -7,6 +7,11 @@ import (
 	"google.golang.org/genproto/googleapis/api/annotations"
 )
 
+// An indicator of the behavior of a given field.
+type FieldBehavior struct {
+	FieldBehavior string `json:"field_behavior"`
+}
+
 // HTTPRule represents a single HTTP rule from the (google.api.http) method option extension.
 type HTTPRule struct {
 	Method  string `json:"method"`
@@ -46,6 +51,14 @@ func getRule(r *annotations.HttpRule) (rule HTTPRule) {
 }
 
 func init() {
+	extensions.SetTransformer("google.api.field_behavior", func(payload interface{}) interface{} {
+		fieldBehavior, ok := payload.([]annotations.FieldBehavior)
+		if !ok || len(fieldBehavior) == 0 {
+			return nil
+		}
+		// Currently, we only take the first one.
+		return FieldBehavior{FieldBehavior: fieldBehavior[0].String()}
+	})
 	extensions.SetTransformer("google.api.http", func(payload interface{}) interface{} {
 		var rules []HTTPRule
 		rule, ok := payload.(*annotations.HttpRule)

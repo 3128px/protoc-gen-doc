@@ -10,7 +10,7 @@
 //
 //     protoc --doc_out=. --doc_opt=custom.tmpl,docs.txt protos/*.proto
 //
-// For more details, check out the README at https://github.com/3128px/protoc-gen-doc/v2
+// For more details, check out the README at https://github.com/github.com/3128px/protoc-gen-doc/v2
 package main
 
 import (
@@ -20,9 +20,8 @@ import (
 	"os"
 
 	gendoc "github.com/3128px/protoc-gen-doc/v2"
-	_ "github.com/3128px/protoc-gen-doc/v2/extensions/google_api_http" // imported for side effects
-	_ "github.com/3128px/protoc-gen-doc/v2/extensions/lyft_validate"   // imported for side effects
-	_ "github.com/3128px/protoc-gen-doc/v2/extensions/validator_field" // imported for side effects
+	_ "github.com/3128px/protoc-gen-doc/v2/extensions/envoyproxy_validate" // imported for side effects
+	_ "github.com/3128px/protoc-gen-doc/v2/extensions/google_api"          // imported for side effects
 )
 
 func main() {
