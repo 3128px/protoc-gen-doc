@@ -25,9 +25,11 @@ func NewTemplate(descs []*protokit.FileDescriptor) *Template {
 	files := make([]*File, 0, len(descs))
 
 	for _, f := range descs {
+		header := getTitleAndDescription(description(f.GetPackageComments().String()))
 		file := &File{
 			Name:          f.GetName(),
-			Description:   description(f.GetSyntaxComments().String()),
+			Title:         header.title,
+			Description:   header.description,
 			Package:       f.GetPackage(),
 			HasEnums:      len(f.Enums) > 0,
 			HasExtensions: len(f.Extensions) > 0,
@@ -127,6 +129,7 @@ func extractOptions(opts commonOptions) map[string]interface{} {
 // In the case of proto3 files, HasExtensions will always be false, and Extensions will be empty.
 type File struct {
 	Name        string `json:"name"`
+	Title       string `json:"title"`
 	Description string `json:"description"`
 	Package     string `json:"package"`
 
@@ -572,6 +575,19 @@ func description(comment string) string {
 	}
 
 	return val
+}
+
+type titleAndDescription struct {
+	title       string
+	description string
+}
+
+func getTitleAndDescription(desc string) titleAndDescription {
+	parts := strings.SplitN(desc, "\n\n", 2) // "\n\n" is the separator between title and description.
+	if len(parts) == 2 {
+		return titleAndDescription{parts[0], parts[1]}
+	}
+	return titleAndDescription{}
 }
 
 type orderedEnums []*Enum
