@@ -9,6 +9,7 @@ import (
 	"github.com/3128px/protoc-gen-doc/v2/extensions"
 	"github.com/golang/protobuf/protoc-gen-go/descriptor"
 	"github.com/pseudomuto/protokit"
+	"sigs.k8s.io/yaml"
 )
 
 // Template is a type for encapsulating all the parsed files, messages, fields, enums, services, extensions, etc. into
@@ -25,7 +26,9 @@ func NewTemplate(descs []*protokit.FileDescriptor) *Template {
 	files := make([]*File, 0, len(descs))
 
 	for _, f := range descs {
-		header := getTitleAndDescription(description(f.GetPackageComments().String()))
+		packageComment := f.GetPackageComments().String()
+		detachedComment := strings.Join(f.GetPackageComments().Detached, "")
+		header := getTitleAndDescription(description(packageComment, detachedComment))
 		file := &File{
 			Name:          f.GetName(),
 			Title:         header.title,
@@ -402,7 +405,7 @@ func parseEnum(pe *protokit.EnumDescriptor) *Enum {
 		Name:        pe.GetName(),
 		LongName:    pe.GetLongName(),
 		FullName:    pe.GetFullName(),
-		Description: description(pe.GetComments().String()),
+		Description: description(pe.GetComments().String(), ""),
 		Options:     mergeOptions(extractOptions(pe.GetOptions()), extensions.Transform(pe.OptionExtensions)),
 	}
 
@@ -410,7 +413,7 @@ func parseEnum(pe *protokit.EnumDescriptor) *Enum {
 		enum.Values = append(enum.Values, &EnumValue{
 			Name:        val.GetName(),
 			Number:      fmt.Sprint(val.GetNumber()),
-			Description: description(val.GetComments().String()),
+			Description: description(val.GetComments().String(), ""),
 			Options:     mergeOptions(extractOptions(val.GetOptions()), extensions.Transform(val.OptionExtensions)),
 		})
 	}
@@ -425,7 +428,7 @@ func parseFileExtension(pe *protokit.ExtensionDescriptor) *FileExtension {
 		Name:               pe.GetName(),
 		LongName:           pe.GetLongName(),
 		FullName:           pe.GetFullName(),
-		Description:        description(pe.GetComments().String()),
+		Description:        description(pe.GetComments().String(), ""),
 		Label:              labelName(pe.GetLabel(), pe.IsProto3(), pe.GetProto3Optional()),
 		Type:               t,
 		LongType:           lt,
@@ -443,7 +446,7 @@ func parseMessage(pm *protokit.Descriptor) *Message {
 		Name:          pm.GetName(),
 		LongName:      pm.GetLongName(),
 		FullName:      pm.GetFullName(),
-		Description:   description(pm.GetComments().String()),
+		Description:   description(pm.GetComments().String(), ""),
 		HasExtensions: len(pm.GetExtensions()) > 0,
 		HasFields:     len(pm.GetMessageFields()) > 0,
 		HasOneofs:     len(pm.GetOneofDecl()) > 0,
@@ -477,7 +480,7 @@ func parseMessageField(pf *protokit.FieldDescriptor, oneofDecls []*descriptor.On
 
 	m := &MessageField{
 		Name:         pf.GetName(),
-		Description:  description(pf.GetComments().String()),
+		Description:  description(pf.GetComments().String(), ""),
 		Label:        labelName(pf.GetLabel(), pf.IsProto3(), pf.GetProto3Optional()),
 		Type:         t,
 		LongType:     lt,
@@ -510,7 +513,7 @@ func parseService(ps *protokit.ServiceDescriptor) *Service {
 		Name:        ps.GetName(),
 		LongName:    ps.GetLongName(),
 		FullName:    ps.GetFullName(),
-		Description: description(ps.GetComments().String()),
+		Description: description(ps.GetComments().String(), ""),
 		Options:     mergeOptions(extractOptions(ps.GetOptions()), extensions.Transform(ps.OptionExtensions)),
 	}
 
@@ -524,7 +527,7 @@ func parseService(ps *protokit.ServiceDescriptor) *Service {
 func parseServiceMethod(pm *protokit.MethodDescriptor) *ServiceMethod {
 	return &ServiceMethod{
 		Name:              pm.GetName(),
-		Description:       description(pm.GetComments().String()),
+		Description:       description(pm.GetComments().String(), ""),
 		RequestType:       baseName(pm.GetInputType()),
 		RequestLongType:   strings.TrimPrefix(pm.GetInputType(), "."+pm.GetPackage()+"."),
 		RequestFullType:   strings.TrimPrefix(pm.GetInputType(), "."),
@@ -568,12 +571,25 @@ func parseType(tc typeContainer) (string, string, string) {
 	return name, name, name
 }
 
-func description(comment string) string {
+type titleAndDescriptionFromDetachedComment struct {
+	Title       string `json:"$title"`
+	Description string `json:"$description"`
+}
+
+func description(comment, detachedComment string) string {
 	val := strings.TrimLeft(comment, "*/\n ")
-	if strings.HasPrefix(val, "@exclude") {
+	if strings.HasPrefix(val, "@exclude") { // TODO(dio): Add more rules.
 		return ""
 	}
 
+	if strings.HasPrefix(detachedComment, "$") {
+		var parsed titleAndDescriptionFromDetachedComment
+		if err := yaml.Unmarshal([]byte(detachedComment), &parsed); err != nil {
+			return val
+		}
+		// The "\n\n" is added to let getTitleAndDescription works. See: getTitleAndDescription for more details.
+		return parsed.Title + "\n\n" + parsed.Description
+	}
 	return val
 }
 
