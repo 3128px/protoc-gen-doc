@@ -3,6 +3,7 @@ package gendoc
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -576,6 +577,12 @@ type titleAndDescriptionFromDetachedComment struct {
 	Description string `json:"$description"`
 }
 
+var normalizer = regexp.MustCompile(`\r?\n`)
+
+func normalizeFrontmatter(data string) string {
+	return strings.ReplaceAll(normalizer.ReplaceAllString(data, " "), "$", "\n$")
+}
+
 func description(comment, detachedComment string) string {
 	val := strings.TrimLeft(comment, "*/\n ")
 	if strings.HasPrefix(val, "@exclude") { // TODO(dio): Add more rules.
@@ -584,7 +591,7 @@ func description(comment, detachedComment string) string {
 
 	if strings.HasPrefix(detachedComment, "$") {
 		var parsed titleAndDescriptionFromDetachedComment
-		if err := yaml.Unmarshal([]byte(detachedComment), &parsed); err != nil {
+		if err := yaml.Unmarshal([]byte(normalizeFrontmatter(detachedComment)), &parsed); err != nil {
 			return val
 		}
 		// The "\n\n" is added to let getTitleAndDescription works. See: getTitleAndDescription for more details.
