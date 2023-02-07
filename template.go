@@ -34,17 +34,22 @@ func NewTemplate(descs []*protokit.FileDescriptor) *Template {
 			Name:             f.GetName(),
 			Title:            header.title,
 			BriefDescription: header.description,
-			Description:      packageComment,
-			Package:          f.GetPackage(),
-			HasEnums:         len(f.Enums) > 0,
-			HasExtensions:    len(f.Extensions) > 0,
-			HasMessages:      len(f.Messages) > 0,
-			HasServices:      len(f.Services) > 0,
-			Enums:            make(orderedEnums, 0, len(f.Enums)),
-			Extensions:       make(orderedExtensions, 0, len(f.Extensions)),
-			Messages:         make(orderedMessages, 0, len(f.Messages)),
-			Services:         make(orderedServices, 0, len(f.Services)),
-			Options:          mergeOptions(extractOptions(f.GetOptions()), extensions.Transform(f.OptionExtensions)),
+			Description: func() string {
+				if packageComment == "" {
+					return header.description
+				}
+				return packageComment
+			}(),
+			Package:       f.GetPackage(),
+			HasEnums:      len(f.Enums) > 0,
+			HasExtensions: len(f.Extensions) > 0,
+			HasMessages:   len(f.Messages) > 0,
+			HasServices:   len(f.Services) > 0,
+			Enums:         make(orderedEnums, 0, len(f.Enums)),
+			Extensions:    make(orderedExtensions, 0, len(f.Extensions)),
+			Messages:      make(orderedMessages, 0, len(f.Messages)),
+			Services:      make(orderedServices, 0, len(f.Services)),
+			Options:       mergeOptions(extractOptions(f.GetOptions()), extensions.Transform(f.OptionExtensions)),
 		}
 
 		for _, e := range f.Enums {
