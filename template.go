@@ -31,19 +31,20 @@ func NewTemplate(descs []*protokit.FileDescriptor) *Template {
 		detachedComment := strings.Join(f.GetPackageComments().Detached, "")
 		header := getTitleAndDescription(description(packageComment, detachedComment))
 		file := &File{
-			Name:          f.GetName(),
-			Title:         header.title,
-			Description:   header.description,
-			Package:       f.GetPackage(),
-			HasEnums:      len(f.Enums) > 0,
-			HasExtensions: len(f.Extensions) > 0,
-			HasMessages:   len(f.Messages) > 0,
-			HasServices:   len(f.Services) > 0,
-			Enums:         make(orderedEnums, 0, len(f.Enums)),
-			Extensions:    make(orderedExtensions, 0, len(f.Extensions)),
-			Messages:      make(orderedMessages, 0, len(f.Messages)),
-			Services:      make(orderedServices, 0, len(f.Services)),
-			Options:       mergeOptions(extractOptions(f.GetOptions()), extensions.Transform(f.OptionExtensions)),
+			Name:             f.GetName(),
+			Title:            header.title,
+			BriefDescription: header.description,
+			Description:      packageComment,
+			Package:          f.GetPackage(),
+			HasEnums:         len(f.Enums) > 0,
+			HasExtensions:    len(f.Extensions) > 0,
+			HasMessages:      len(f.Messages) > 0,
+			HasServices:      len(f.Services) > 0,
+			Enums:            make(orderedEnums, 0, len(f.Enums)),
+			Extensions:       make(orderedExtensions, 0, len(f.Extensions)),
+			Messages:         make(orderedMessages, 0, len(f.Messages)),
+			Services:         make(orderedServices, 0, len(f.Services)),
+			Options:          mergeOptions(extractOptions(f.GetOptions()), extensions.Transform(f.OptionExtensions)),
 		}
 
 		for _, e := range f.Enums {
@@ -132,10 +133,11 @@ func extractOptions(opts commonOptions) map[string]interface{} {
 //
 // In the case of proto3 files, HasExtensions will always be false, and Extensions will be empty.
 type File struct {
-	Name        string `json:"name"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Package     string `json:"package"`
+	Name             string `json:"name"`
+	Title            string `json:"title"`
+	BriefDescription string `json:"briefDescription"`
+	Description      string `json:"description"`
+	Package          string `json:"package"`
 
 	HasEnums      bool `json:"hasEnums"`
 	HasExtensions bool `json:"hasExtensions"`
