@@ -4,11 +4,11 @@
 //
 // Example: generate HTML documentation
 //
-//     protoc --doc_out=. --doc_opt=html,index.html protos/*.proto
+//	protoc --doc_out=. --doc_opt=html,index.html protos/*.proto
 //
 // Example: use a custom template
 //
-//     protoc --doc_out=. --doc_opt=custom.tmpl,docs.txt protos/*.proto
+//	protoc --doc_out=. --doc_opt=custom.tmpl,docs.txt protos/*.proto
 //
 // For more details, check out the README at https://github.com/github.com/3128px/protoc-gen-doc/v2
 package main
@@ -22,6 +22,7 @@ import (
 	gendoc "github.com/3128px/protoc-gen-doc/v2"
 	_ "github.com/3128px/protoc-gen-doc/v2/extensions/envoyproxy_validate" // imported for side effects
 	_ "github.com/3128px/protoc-gen-doc/v2/extensions/google_api"          // imported for side effects
+	_ "github.com/3128px/protoc-gen-doc/v2/extensions/tetrate_api"         // imported for side effects
 )
 
 func main() {
